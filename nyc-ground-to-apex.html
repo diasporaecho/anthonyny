@@ -1,0 +1,1316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#03040b" />
+  <title>NYC — Ground to Apex</title>
+  <meta name="description" content="A dark glassmorphism trip showcase for NYC — Ground to Apex, July 9–11, 2026." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    :root {
+      --bg: #03040b;
+      --ink: #f7f1df;
+      --muted: rgba(247, 241, 223, .68);
+      --muted-2: rgba(247, 241, 223, .48);
+      --line: rgba(255, 255, 255, .14);
+      --line-strong: rgba(255, 255, 255, .24);
+      --glass: rgba(255, 255, 255, .045);
+      --accent-a: #f5b945;
+      --accent-b: #54c4cd;
+      --navy: #07152b;
+      --shadow: 0 28px 80px rgba(0, 0, 0, .55), 0 8px 28px rgba(0, 0, 0, .36);
+      --radius: 22px;
+      --max: 1160px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 16% 18%, rgba(7, 26, 62, .74), transparent 34vw),
+        radial-gradient(circle at 82% 38%, rgba(84, 196, 205, .12), transparent 34vw),
+        radial-gradient(circle at 52% 92%, rgba(245, 185, 69, .08), transparent 31vw),
+        linear-gradient(180deg, #03040b 0%, #050712 56%, #03040b 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -2;
+      opacity: .045;
+      background-image:
+        linear-gradient(rgba(84, 196, 205, .58) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(84, 196, 205, .58) 1px, transparent 1px);
+      background-size: 54px 54px;
+      -webkit-mask-image: radial-gradient(circle at 52% 22%, black 0 46%, transparent 78%);
+      mask-image: radial-gradient(circle at 52% 22%, black 0 46%, transparent 78%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 12% 62%, rgba(245, 185, 69, .05), transparent 21rem),
+        radial-gradient(circle at 86% 72%, rgba(84, 196, 205, .07), transparent 24rem);
+    }
+
+    ::selection {
+      background: rgba(245, 185, 69, .28);
+      color: #fff8dc;
+    }
+
+    a { color: inherit; }
+
+    a:focus-visible,
+    button:focus-visible,
+    [tabindex]:focus-visible,
+    .leaflet-container a:focus-visible {
+      outline: 2px solid var(--accent-b);
+      outline-offset: 4px;
+      border-radius: 14px;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 99;
+      transform: translateY(-180%);
+      background: rgba(3, 4, 11, .96);
+      border: 1px solid var(--accent-b);
+      color: var(--ink);
+      padding: .75rem .9rem;
+      border-radius: 999px;
+      font: 700 .72rem/1 Space Mono, monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .glass {
+      background: var(--glass);
+      border: 1px solid var(--line);
+      -webkit-backdrop-filter: blur(22px) saturate(135%);
+      backdrop-filter: blur(22px) saturate(135%);
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .09);
+      border-radius: var(--radius);
+    }
+
+    .eyebrow,
+    .mono {
+      font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      font-size: .72rem;
+      color: var(--muted);
+    }
+
+    .starfield {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    .starfield span {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: var(--s);
+      height: var(--s);
+      opacity: var(--o);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .9);
+      box-shadow: 0 0 18px rgba(84, 196, 205, .32);
+    }
+
+    .hero {
+      position: relative;
+      min-height: 100svh;
+      display: grid;
+      align-items: end;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: -2.4rem;
+      z-index: 0;
+      background-image: url("https://images.unsplash.com/photo-1544077960-604201fe74bc?fm=jpg&q=78&w=2000&auto=format&fit=crop");
+      background-size: cover;
+      background-position: center 34%;
+      transform: scale(1.04);
+      animation: slowDrift 28s ease-in-out infinite alternate;
+      filter: saturate(.95) contrast(1.06) brightness(.76);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background:
+        linear-gradient(90deg, rgba(3, 4, 11, .98) 0%, rgba(3, 4, 11, .82) 32%, rgba(3, 4, 11, .34) 66%, rgba(3, 4, 11, .58) 100%),
+        linear-gradient(180deg, rgba(3, 4, 11, .18) 0%, rgba(3, 4, 11, .74) 70%, #03040b 100%);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      z-index: 1;
+      height: 36vh;
+      background: linear-gradient(180deg, transparent, #03040b 78%);
+      pointer-events: none;
+    }
+
+    @keyframes slowDrift {
+      from { transform: scale(1.035) translate3d(-.8%, .3%, 0); }
+      to { transform: scale(1.105) translate3d(.85%, -.65%, 0); }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 3;
+      width: min(var(--max), calc(100% - 36px));
+      margin: 0 auto;
+      padding: 7.5rem 0 6.2rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.3rem;
+    }
+
+    .hero-kicker {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: .7rem;
+      padding: .66rem .82rem;
+      border-radius: 999px;
+      border: 1px solid rgba(245, 185, 69, .26);
+      background: rgba(245, 185, 69, .055);
+      color: rgba(255, 242, 199, .82);
+    }
+
+    .hero-kicker::before {
+      content: "";
+      width: .48rem;
+      height: .48rem;
+      border-radius: 50%;
+      background: var(--accent-a);
+      box-shadow: 0 0 22px rgba(245, 185, 69, .72);
+    }
+
+    .hero-title {
+      max-width: 980px;
+      margin: 0;
+      font-family: Syne, Inter, sans-serif;
+      font-weight: 800;
+      letter-spacing: -.075em;
+      line-height: .86;
+      font-size: clamp(4.3rem, 10vw, 10.8rem);
+      text-wrap: balance;
+      text-shadow: 0 22px 70px rgba(0, 0, 0, .82);
+    }
+
+    .hero-title span { color: var(--accent-a); }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 0;
+      color: rgba(247, 241, 223, .76);
+      font-size: clamp(1rem, 2.1vw, 1.38rem);
+      line-height: 1.6;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1rem;
+      max-width: 900px;
+      margin-top: .6rem;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .72rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      gap: .52rem;
+      padding: .72rem .86rem;
+      border-radius: 999px;
+      color: rgba(247, 241, 223, .78);
+      font-family: "Space Mono", monospace;
+      font-size: .72rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, .055);
+      border: 1px solid rgba(255, 255, 255, .13);
+      -webkit-backdrop-filter: blur(18px) saturate(135%);
+      backdrop-filter: blur(18px) saturate(135%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+    }
+
+    .chip strong {
+      color: var(--accent-b);
+      font-weight: 700;
+    }
+
+    .countdown {
+      width: min(100%, 650px);
+      padding: 1rem;
+      display: grid;
+      gap: .8rem;
+    }
+
+    .countdown-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, .08);
+      padding-bottom: .8rem;
+    }
+
+    .countdown-title {
+      margin: 0;
+      font: 700 .76rem/1.4 "Space Mono", monospace;
+      color: var(--accent-b);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    #countdown-label {
+      margin: 0;
+      font: 700 .72rem/1.4 "Space Mono", monospace;
+      color: rgba(247, 241, 223, .62);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      text-align: right;
+    }
+
+    .countdown-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: .64rem;
+    }
+
+    .timebox {
+      min-height: 92px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      background: rgba(3, 4, 11, .34);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+    }
+
+    .timebox strong {
+      display: block;
+      font-family: "Bebas Neue", Impact, sans-serif;
+      font-weight: 400;
+      line-height: .86;
+      letter-spacing: .035em;
+      font-size: clamp(2.3rem, 8vw, 4.2rem);
+      color: var(--ink);
+      text-shadow: 0 0 24px rgba(84, 196, 205, .18);
+    }
+
+    .timebox span {
+      display: block;
+      margin-top: .35rem;
+      font: 700 .62rem/1 "Space Mono", monospace;
+      color: rgba(247, 241, 223, .5);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .photo-credit {
+      position: absolute;
+      right: max(18px, calc((100vw - var(--max)) / 2));
+      bottom: 16px;
+      z-index: 4;
+      color: rgba(247, 241, 223, .52);
+      text-shadow: 0 2px 20px rgba(0, 0, 0, .72);
+      font: 700 .62rem/1.35 "Space Mono", monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .scroll-cue {
+      position: absolute;
+      left: max(18px, calc((100vw - var(--max)) / 2));
+      bottom: 20px;
+      z-index: 4;
+      display: inline-flex;
+      align-items: center;
+      gap: .68rem;
+      color: rgba(247, 241, 223, .62);
+      text-decoration: none;
+      font: 700 .66rem/1 "Space Mono", monospace;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .scroll-cue::after {
+      content: "";
+      width: 46px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent-a), transparent);
+    }
+
+    main > section:not(.hero),
+    footer {
+      width: min(var(--max), calc(100% - 36px));
+      margin-inline: auto;
+    }
+
+    .section {
+      padding: clamp(4.2rem, 8vw, 7.6rem) 0 0;
+      position: relative;
+    }
+
+    .section-head {
+      display: grid;
+      gap: .76rem;
+      margin-bottom: clamp(1.7rem, 4vw, 3rem);
+    }
+
+    .section-head h2 {
+      max-width: 860px;
+      margin: 0;
+      font-family: Syne, Inter, sans-serif;
+      font-size: clamp(2.3rem, 6.1vw, 5.8rem);
+      line-height: .9;
+      letter-spacing: -.055em;
+      text-wrap: balance;
+    }
+
+    .section-head p:last-child {
+      margin: 0;
+      max-width: 760px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .route-list {
+      position: relative;
+      display: grid;
+      gap: 1.45rem;
+      padding: .4rem 0 .4rem 74px;
+      margin: 0;
+      list-style: none;
+    }
+
+    .route-list::before {
+      content: "";
+      position: absolute;
+      top: 1.6rem;
+      bottom: 1.6rem;
+      left: 24px;
+      width: 4px;
+      border-radius: 99px;
+      background: linear-gradient(180deg,
+        rgba(105, 59, 25, .78),
+        rgba(245, 185, 69, .72) 48%,
+        rgba(84, 196, 205, .92));
+      box-shadow: 0 0 28px rgba(84, 196, 205, .16), 0 0 24px rgba(245, 185, 69, .14);
+    }
+
+    .route-stop {
+      position: relative;
+      min-height: 92px;
+    }
+
+    .node {
+      position: absolute;
+      left: -72px;
+      top: 1.15rem;
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--accent-a);
+      background: rgba(255, 255, 255, .055);
+      border: 1px solid rgba(255, 255, 255, .18);
+      -webkit-backdrop-filter: blur(22px) saturate(135%);
+      backdrop-filter: blur(22px) saturate(135%);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, .48), inset 0 1px 0 rgba(255, 255, 255, .12);
+      z-index: 1;
+    }
+
+    .node svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .stop-card {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(1.08rem, 3vw, 1.48rem);
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .025)),
+        radial-gradient(circle at 92% 12%, rgba(var(--tone), .15), transparent 24rem);
+    }
+
+    .stop-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .07), transparent 34%);
+      opacity: .42;
+    }
+
+    .stop-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: .95rem;
+    }
+
+    .stop-top {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .metric {
+      margin: 0;
+      display: inline-flex;
+      align-items: baseline;
+      gap: .45rem;
+      color: var(--accent-a);
+      text-shadow: 0 0 28px rgba(245, 185, 69, .12);
+      font-family: "Bebas Neue", Impact, sans-serif;
+      line-height: .78;
+      letter-spacing: .025em;
+    }
+
+    .metric span {
+      font-size: clamp(4.2rem, 12vw, 8.4rem);
+      font-weight: 400;
+    }
+
+    .metric small {
+      font: 700 clamp(.72rem, 1.5vw, 1rem)/1 "Space Mono", monospace;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: rgba(245, 185, 69, .76);
+    }
+
+    .metric-word span {
+      font-size: clamp(3.35rem, 10vw, 7rem);
+    }
+
+    .tag {
+      flex: 0 0 auto;
+      margin-top: .2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid rgba(84, 196, 205, .36);
+      background: rgba(84, 196, 205, .08);
+      color: var(--accent-b);
+      padding: .56rem .72rem;
+      font: 700 .66rem/1 "Space Mono", monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .stop-card h3 {
+      margin: -.2rem 0 0;
+      font-family: Syne, Inter, sans-serif;
+      font-size: clamp(1.6rem, 3.8vw, 2.75rem);
+      letter-spacing: -.04em;
+      line-height: 1;
+    }
+
+    .address {
+      margin: 0;
+      color: rgba(247, 241, 223, .58);
+      font: 700 .74rem/1.55 "Space Mono", monospace;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .writeup {
+      margin: 0;
+      max-width: 820px;
+      color: rgba(247, 241, 223, .76);
+      line-height: 1.68;
+      font-size: .99rem;
+    }
+
+    .hours {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .48rem;
+      align-items: center;
+    }
+
+    .day,
+    .price-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      padding: .38rem .54rem;
+      color: rgba(247, 241, 223, .5);
+      background: rgba(255, 255, 255, .035);
+      font: 700 .64rem/1 "Space Mono", monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .day.open {
+      border-color: rgba(84, 196, 205, .46);
+      background: rgba(84, 196, 205, .085);
+      color: var(--accent-b);
+      box-shadow: 0 0 18px rgba(84, 196, 205, .06);
+    }
+
+    .day.event {
+      border-color: rgba(245, 185, 69, .48);
+      background: rgba(245, 185, 69, .095);
+      color: var(--accent-a);
+    }
+
+    .day.warn,
+    .price-chip.warn {
+      border-color: rgba(245, 185, 69, .42);
+      background: rgba(245, 185, 69, .085);
+      color: rgba(255, 225, 139, .92);
+    }
+
+    .hours-note {
+      flex-basis: 100%;
+      margin: .2rem 0 0;
+      color: rgba(247, 241, 223, .52);
+      font: 500 .78rem/1.5 Inter, sans-serif;
+    }
+
+    .map-shell {
+      position: relative;
+      overflow: hidden;
+      padding: .7rem;
+    }
+
+    #map {
+      min-height: 430px;
+      height: min(68vh, 690px);
+      width: 100%;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #070b12;
+      border: 1px solid rgba(255, 255, 255, .12);
+    }
+
+    .map-caption {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .7rem;
+      align-items: center;
+      justify-content: space-between;
+      padding: .75rem .3rem .15rem;
+      color: rgba(247, 241, 223, .56);
+      font: 700 .66rem/1.5 "Space Mono", monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .leaflet-container {
+      font-family: Inter, system-ui, sans-serif;
+      background: #050712;
+      outline: none;
+    }
+
+    .leaflet-control-attribution,
+    .leaflet-control-zoom a {
+      background: rgba(3, 4, 11, .72) !important;
+      color: rgba(247, 241, 223, .72) !important;
+      border-color: rgba(255, 255, 255, .12) !important;
+      -webkit-backdrop-filter: blur(14px) saturate(130%);
+      backdrop-filter: blur(14px) saturate(130%);
+    }
+
+    .leaflet-control-attribution a { color: var(--accent-b) !important; }
+
+    .route-pin {
+      position: relative;
+      width: 34px;
+      height: 34px;
+      transform: rotate(-45deg);
+      border-radius: 50% 50% 50% 0;
+      background: var(--accent-a);
+      border: 1px solid rgba(255, 255, 255, .68);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, .55), 0 0 26px rgba(245, 185, 69, .35);
+    }
+
+    .route-pin span {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      transform: rotate(45deg);
+      color: #11110d;
+      font: 800 .84rem/1 Syne, Inter, sans-serif;
+    }
+
+    .leaflet-popup-content-wrapper,
+    .leaflet-popup-tip {
+      background: rgba(8, 11, 22, .78);
+      border: 1px solid rgba(255, 255, 255, .16);
+      -webkit-backdrop-filter: blur(22px) saturate(135%);
+      backdrop-filter: blur(22px) saturate(135%);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, .52), inset 0 1px 0 rgba(255, 255, 255, .08);
+      color: var(--ink);
+    }
+
+    .leaflet-popup-content {
+      margin: .9rem .95rem;
+      min-width: 190px;
+    }
+
+    .popup-name {
+      margin: 0 0 .35rem;
+      font: 800 1rem/1.1 Syne, Inter, sans-serif;
+      letter-spacing: -.02em;
+    }
+
+    .popup-meta {
+      margin: 0;
+      color: rgba(247, 241, 223, .58);
+      font: 700 .66rem/1.5 "Space Mono", monospace;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .popup-metric {
+      display: inline-block;
+      margin-top: .55rem;
+      color: var(--accent-a);
+      font: 400 1.65rem/.9 "Bebas Neue", Impact, sans-serif;
+      letter-spacing: .04em;
+    }
+
+    .know-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .info-card {
+      padding: 1.15rem;
+    }
+
+    .info-card h3,
+    .day-card h3 {
+      margin: 0 0 .72rem;
+      font-family: Syne, Inter, sans-serif;
+      font-size: 1.35rem;
+      line-height: 1;
+      letter-spacing: -.035em;
+    }
+
+    .info-card p,
+    .day-card p,
+    .day-card li {
+      color: rgba(247, 241, 223, .72);
+      line-height: 1.58;
+      font-size: .95rem;
+    }
+
+    .info-card p { margin: 0; }
+
+    .info-card strong { color: var(--accent-b); }
+    .info-card .warn { color: var(--accent-a); font-weight: 800; }
+
+    .day-plan {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .day-card {
+      padding: 1.15rem;
+      min-height: 100%;
+    }
+
+    .day-card .date {
+      display: inline-flex;
+      margin-bottom: .72rem;
+      color: var(--accent-a);
+    }
+
+    .day-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: .62rem;
+    }
+
+    .day-card li {
+      position: relative;
+      padding-left: 1.05rem;
+    }
+
+    .day-card li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: .62rem;
+      width: .42rem;
+      height: .42rem;
+      border-radius: 50%;
+      background: var(--accent-b);
+      box-shadow: 0 0 18px rgba(84, 196, 205, .42);
+    }
+
+    footer {
+      padding: clamp(5rem, 9vw, 8rem) 0 2.3rem;
+    }
+
+    .footer-card {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(1.3rem, 4vw, 2.2rem);
+    }
+
+    .footer-card::before {
+      content: "";
+      position: absolute;
+      inset: -20% -10%;
+      background: radial-gradient(circle at 78% 20%, rgba(245, 185, 69, .16), transparent 24rem), radial-gradient(circle at 12% 74%, rgba(84, 196, 205, .13), transparent 26rem);
+      pointer-events: none;
+    }
+
+    .footer-inner { position: relative; z-index: 1; }
+
+    .footer-card h2 {
+      margin: .55rem 0 1rem;
+      max-width: 840px;
+      font-family: Syne, Inter, sans-serif;
+      font-size: clamp(2.8rem, 7.8vw, 7rem);
+      line-height: .88;
+      letter-spacing: -.06em;
+    }
+
+    .footer-tag {
+      display: inline-flex;
+      color: var(--accent-a);
+      font: 700 .84rem/1 "Space Mono", monospace;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      border-top: 1px solid rgba(245, 185, 69, .28);
+      padding-top: .9rem;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .72s ease, transform .72s ease;
+    }
+
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (min-width: 760px) {
+      .hero-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 650px);
+        align-items: start;
+      }
+
+      .chips { max-width: 420px; }
+
+      .route-list {
+        gap: 1.75rem;
+        padding-left: 92px;
+      }
+
+      .route-list::before { left: 31px; }
+      .node { left: -88px; width: 62px; height: 62px; }
+      .node svg { width: 24px; height: 24px; }
+
+      .stop-card { padding: 1.55rem 1.65rem; }
+      .writeup { font-size: 1.02rem; }
+    }
+
+    @media (max-width: 880px) {
+      .know-grid,
+      .day-plan { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .hero-content {
+        width: min(100% - 32px, var(--max));
+        padding: 6.8rem 0 5.6rem;
+      }
+
+      .hero-title { font-size: clamp(3.7rem, 18vw, 5.8rem); }
+      .subtitle { font-size: 1rem; }
+      .hero-grid { gap: .86rem; }
+      .countdown { padding: .82rem; }
+      .countdown-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .timebox { min-height: 82px; }
+      .photo-credit { right: 16px; bottom: 12px; max-width: 180px; text-align: right; }
+      .scroll-cue { left: 16px; bottom: 14px; }
+      main > section:not(.hero), footer { width: min(100% - 32px, var(--max)); }
+      .route-list { padding-left: 64px; }
+      .route-list::before { left: 22px; }
+      .node { left: -64px; width: 48px; height: 48px; }
+      .stop-top { display: grid; justify-content: start; }
+      .tag { width: fit-content; }
+      .address { font-size: .68rem; }
+      #map { min-height: 390px; height: 430px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+
+      .hero-bg { animation: none !important; transform: none !important; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <main id="content">
+    <section class="hero" aria-labelledby="trip-title">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="starfield" aria-hidden="true">
+        <span style="--x:14%;--y:18%;--s:2px;--o:.42"></span>
+        <span style="--x:28%;--y:12%;--s:1px;--o:.28"></span>
+        <span style="--x:44%;--y:21%;--s:2px;--o:.34"></span>
+        <span style="--x:62%;--y:16%;--s:1px;--o:.22"></span>
+        <span style="--x:78%;--y:27%;--s:2px;--o:.32"></span>
+        <span style="--x:88%;--y:11%;--s:1px;--o:.3"></span>
+        <span style="--x:8%;--y:42%;--s:1px;--o:.24"></span>
+        <span style="--x:72%;--y:48%;--s:2px;--o:.22"></span>
+      </div>
+
+      <div class="hero-content">
+        <p class="hero-kicker eyebrow">New York City · Jul 9–11, 2026</p>
+        <h1 id="trip-title" class="hero-title">NYC — Ground to <span>Apex</span></h1>
+        <p class="subtitle">A solo climb through Lower Manhattan memory, East Village drums, skyline cocktails, and the highest lean-out New York can legally sell you.</p>
+
+        <div class="hero-grid" aria-label="Trip summary and countdown">
+          <div class="chips" aria-label="Trip details">
+            <span class="chip"><strong>Traveler</strong> Solo</span>
+            <span class="chip"><strong>Spine</strong> 0 → 1,271 ft</span>
+            <span class="chip"><strong>Anchor</strong> Webster Hall</span>
+          </div>
+
+          <section class="countdown glass" aria-labelledby="countdown-title">
+            <div class="countdown-top">
+              <h2 id="countdown-title" class="countdown-title">DJ Premier &amp; The Alchemist</h2>
+              <p id="countdown-label" aria-live="polite">to showtime</p>
+            </div>
+            <div class="countdown-grid" aria-label="Countdown to July 9, 2026 at 8:00 PM Eastern Time">
+              <div class="timebox"><div><strong data-unit="days">00</strong><span>days</span></div></div>
+              <div class="timebox"><div><strong data-unit="hours">00</strong><span>hours</span></div></div>
+              <div class="timebox"><div><strong data-unit="minutes">00</strong><span>mins</span></div></div>
+              <div class="timebox"><div><strong data-unit="seconds">00</strong><span>secs</span></div></div>
+            </div>
+          </section>
+        </div>
+      </div>
+      <a class="scroll-cue" href="#route">scroll to route</a>
+      <p class="photo-credit">Photo: Andre Benz / Unsplash</p>
+    </section>
+
+    <section id="route" class="section" aria-labelledby="route-title">
+      <div class="section-head reveal" data-reveal>
+        <p class="eyebrow">The route, by altitude</p>
+        <h2 id="route-title">Start with buried memory. Finish above the skyline.</h2>
+        <p>This route is a climb, not a checklist: federal stone and ancestral ground, a civil-rights gallery, a show-room detonation, a glass-roof cocktail level, then the apex at Hudson Yards if City Climb returns to sale.</p>
+      </div>
+
+      <ol class="route-list">
+        <li class="route-stop reveal" data-reveal>
+          <div class="node" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4.5 19.5h15"/><path d="M6 17V9.8c0-3.2 2.7-5.8 6-5.8s6 2.6 6 5.8V17"/><path d="M9 17v-5.2c0-1.6 1.3-2.9 3-2.9s3 1.3 3 2.9V17"/><path d="M7.2 7.2h9.6"/><path d="M12 4v13"/></svg>
+          </div>
+          <article class="stop-card glass" style="--tone: 245, 185, 69">
+            <div class="stop-inner">
+              <div class="stop-top">
+                <p class="metric"><span>0</span><small>ft</small></p>
+                <span class="tag">Free</span>
+              </div>
+              <h3>African Burial Ground National Monument</h3>
+              <p class="address">290 Broadway, New York, NY 10007</p>
+              <p class="writeup">Start where the city literally tried to bury its origin story. The memorial cuts through the federal-office grid and puts names, rites, and labor back into a place Wall Street would rather keep anonymous.</p>
+              <div class="hours" aria-label="African Burial Ground current hours">
+                <span class="day">Mon</span><span class="day">Tue</span><span class="day open">Wed</span><span class="day open">Thu</span><span class="day open">Fri</span><span class="day open">Sat</span><span class="day open">Sun</span>
+                <span class="price-chip">Free entry</span>
+                <p class="hours-note">Visitor center/museum 10 AM–4 PM on open days; outdoor memorial stays open until 5 PM in summer.</p>
+              </div>
+            </div>
+          </article>
+        </li>
+
+        <li class="route-stop reveal" data-reveal>
+          <div class="node" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3.8a8.2 8.2 0 1 0 0 16.4a8.2 8.2 0 0 0 0-16.4Z"/><path d="M7.2 6.4c1.4 1.5 2.1 3.4 2.1 5.6s-.7 4.1-2.1 5.6"/><path d="M16.8 6.4c-1.4 1.5-2.1 3.4-2.1 5.6s.7 4.1 2.1 5.6"/><path d="M11 10.2h2.2v3.6"/><path d="M10.5 14.1h4"/></svg>
+          </div>
+          <article class="stop-card glass" style="--tone: 84, 196, 205">
+            <div class="stop-inner">
+              <div class="stop-top">
+                <p class="metric"><span>2</span><small>F</small></p>
+                <span class="tag">Heritage</span>
+              </div>
+              <h3>Jackie Robinson Museum</h3>
+              <p class="address">75 Varick St, New York, NY 10013</p>
+              <p class="writeup">Jackie Robinson belongs in a museum because the story was never just second base. This stop pulls civil rights, media pressure, Brooklyn myth, and business discipline into one room—exactly the heritage check that keeps the climb honest.</p>
+              <div class="hours" aria-label="Jackie Robinson Museum current hours">
+                <span class="day">Mon</span><span class="day">Tue</span><span class="day">Wed</span><span class="day open">Thu</span><span class="day open">Fri</span><span class="day open">Sat</span><span class="day open">Sun</span>
+                <span class="price-chip">Adults $18</span>
+                <p class="hours-note">Open 11 AM–6 PM Thu–Sun; timed tickets recommended, walk-ins possible.</p>
+              </div>
+            </div>
+          </article>
+        </li>
+
+        <li class="route-stop reveal" data-reveal>
+          <div class="node" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 0 0 0-17Z"/><path d="M12 9.2a2.8 2.8 0 1 0 0 5.6a2.8 2.8 0 0 0 0-5.6Z"/><path d="M12 12h.02"/><path d="M4.2 12h2.1"/><path d="M17.7 12h2.1"/><path d="M6.8 6.8l1.4 1.4"/><path d="M15.8 15.8l1.4 1.4"/></svg>
+          </div>
+          <article class="stop-card glass" style="--tone: 245, 185, 69">
+            <div class="stop-inner">
+              <div class="stop-top">
+                <p class="metric metric-word"><span>Main</span><small>floor</small></p>
+                <span class="tag">Anchor</span>
+              </div>
+              <h3>Webster Hall — DJ Premier &amp; The Alchemist</h3>
+              <p class="address">125 E 11th St, New York, NY 10003</p>
+              <p class="writeup">Webster Hall is the pivot point: old East Village electricity, hardwood underfoot, and Premier and Alchemist taking the room from scholarship to impact. This is the anchor, so the day bends around doors, not the other way around.</p>
+              <div class="hours" aria-label="Webster Hall event time">
+                <span class="day event">Thu Jul 9</span><span class="day event">Doors 7 PM</span><span class="day event">Show 8 PM</span><span class="price-chip">16+</span>
+                <p class="hours-note">Fixed point: build the whole Thursday around this.</p>
+              </div>
+            </div>
+          </article>
+        </li>
+
+        <li class="route-stop reveal" data-reveal>
+          <div class="node" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M7 4.5h10l-1.2 6.3a4 4 0 0 1-7.6 0L7 4.5Z"/><path d="M12 14.5v4.7"/><path d="M8.7 19.2h6.6"/><path d="M8.2 7.3h7.6"/><path d="M17.5 9.2l2-1.7"/><path d="M5 18l1.7-4.5"/></svg>
+          </div>
+          <article class="stop-card glass" style="--tone: 84, 196, 205">
+            <div class="stop-inner">
+              <div class="stop-top">
+                <p class="metric"><span>500</span><small>ft</small></p>
+                <span class="tag">Best rooftop</span>
+              </div>
+              <h3>Nubeluz by José Andrés</h3>
+              <p class="address">The Ritz-Carlton New York, NoMad · 25 W 28th St, New York, NY 10001</p>
+              <p class="writeup">José Andrés puts the city in a glass box 500 feet up and lets the skyline do half the talking. Keep it surgical: one clean cocktail, one reservation, and the Empire State Building staring back like a metronome.</p>
+              <div class="hours" aria-label="Nubeluz current hours">
+                <span class="day open">Mon</span><span class="day open">Tue</span><span class="day open">Wed</span><span class="day open">Thu</span><span class="day open">Fri</span><span class="day open">Sat</span><span class="day open">Sun</span>
+                <span class="price-chip">Reserve smart</span>
+                <p class="hours-note">Thu 1 PM–1 AM; Fri–Sat 3 PM–1 AM; Sun 1 PM–midnight. High tea runs Sat–Sun 11 AM–3 PM.</p>
+              </div>
+            </div>
+          </article>
+        </li>
+
+        <li class="route-stop reveal" data-reveal>
+          <div class="node" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 19.5h16"/><path d="M5.5 18l4.9-10.4L14 14l2.2-3.2L20 18"/><path d="M10.4 7.6 12 4.5l2 3.8"/><path d="M12.8 5.8c2.4.7 3.7 2.2 4.2 4.6"/><path d="M8.8 14.3h4.3"/></svg>
+          </div>
+          <article class="stop-card glass" style="--tone: 245, 185, 69">
+            <div class="stop-inner">
+              <div class="stop-top">
+                <p class="metric"><span>1,271</span><small>ft</small></p>
+                <span class="tag">The lean-out</span>
+              </div>
+              <h3>City Climb at Edge</h3>
+              <p class="address">30 Hudson Yards, Level 4, New York, NY 10001</p>
+              <p class="writeup">This is the apex if tickets reopen: harness on, staircase outside the building, lean-out over Hudson Yards. If City Climb stays off-sale, Edge still gives the altitude and the nervous-system reset; the story remains ground-to-sky.</p>
+              <div class="hours" aria-label="City Climb current availability and Edge hours">
+                <span class="day warn">Climb off-sale now</span><span class="day open">Edge daily</span><span class="price-chip warn">Climb from $80 when active</span>
+                <p class="hours-note">Current watch-out: City Climb is closed for the season. Edge observation deck hours are daily 9 AM–10 PM.</p>
+              </div>
+            </div>
+          </article>
+        </li>
+      </ol>
+    </section>
+
+    <section id="map-section" class="section" aria-labelledby="map-title">
+      <div class="section-head reveal" data-reveal>
+        <p class="eyebrow">Map</p>
+        <h2 id="map-title">Downtown roots, East Village anchor, west-side apex.</h2>
+        <p>The map fits every stop into one dark route view. Scroll zoom is disabled so it behaves cleanly on GitHub Pages and mobile.</p>
+      </div>
+      <div class="map-shell glass reveal" data-reveal>
+        <div id="map" role="region" aria-label="Leaflet map of NYC Ground to Apex route stops"></div>
+        <div class="map-caption"><span>CartoDB dark_all · numbered route pins</span><span>0 ft → 1,271 ft</span></div>
+      </div>
+    </section>
+
+    <section id="one-thing" class="section" aria-labelledby="know-title">
+      <div class="section-head reveal" data-reveal>
+        <p class="eyebrow">The one thing to know</p>
+        <h2 id="know-title">Do the ground work before the show. Keep the apex flexible.</h2>
+        <p>Thursday is tight in the right way: the museums overlap, the venue is fixed, and Nubeluz stays open late enough to work as the afterglow. City Climb is the only fragile piece because it is not currently on sale.</p>
+      </div>
+
+      <div class="know-grid">
+        <article class="info-card glass reveal" data-reveal>
+          <h3>Conflict caught</h3>
+          <p>The old museum conflict is no longer the problem: African Burial Ground and Jackie Robinson Museum both work Thu–Sat for this trip. The real issue is <span class="warn">City Climb availability</span>, so the plan treats Edge as the guaranteed sky backup.</p>
+        </article>
+        <article class="info-card glass reveal" data-reveal>
+          <h3>Tightest window</h3>
+          <p><strong>Thu Jul 9, 11 AM–2:30 PM</strong> is the clean museum run: Jackie Robinson first, then African Burial Ground, then reset before 7 PM doors at Webster Hall.</p>
+        </article>
+        <article class="info-card glass reveal" data-reveal>
+          <h3>Reservation move</h3>
+          <p>Put Nubeluz after the show only if the set time leaves breathing room; otherwise make it the Friday golden-hour climb. Either way, reserve instead of improvising.</p>
+        </article>
+      </div>
+
+      <div class="day-plan" aria-label="Three day plan">
+        <article class="day-card glass reveal" data-reveal>
+          <span class="date eyebrow">Thu · Jul 9</span>
+          <h3>Ground + anchor</h3>
+          <ul>
+            <li>11:00 AM Jackie Robinson Museum. Give it the first clear read of the day.</li>
+            <li>1:10 PM African Burial Ground. Keep it quiet, direct, and unrushed.</li>
+            <li>7:00 PM doors / 8:00 PM show at Webster Hall. This is the fixed point.</li>
+          </ul>
+        </article>
+        <article class="day-card glass reveal" data-reveal>
+          <span class="date eyebrow">Fri · Jul 10</span>
+          <h3>Sky window</h3>
+          <ul>
+            <li>Use Friday for City Climb only if tickets return.</li>
+            <li>If not, book Edge observation deck and keep the altitude arc intact.</li>
+            <li>Nubeluz at golden hour or late-night if Thursday ran long.</li>
+          </ul>
+        </article>
+        <article class="day-card glass reveal" data-reveal>
+          <span class="date eyebrow">Sat · Jul 11</span>
+          <h3>Buffer + polish</h3>
+          <ul>
+            <li>Hold this as the weather/energy buffer for any missed museum or skyline stop.</li>
+            <li>Use Nubeluz high tea if you want a cleaner daylight ending.</li>
+            <li>Leave without making the trip frantic. The climb already has a spine.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer aria-labelledby="footer-title">
+    <div class="footer-card glass reveal" data-reveal>
+      <div class="footer-inner">
+        <p class="eyebrow">Sign-off</p>
+        <h2 id="footer-title">Ground held. Apex earned.</h2>
+        <span class="footer-tag">½ MAN ½ AMAZING</span>
+      </div>
+    </div>
+  </footer>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script>
+    const COUNTDOWN_TARGET = "2026-07-09T20:00:00-04:00";
+    const targetTime = new Date(COUNTDOWN_TARGET).getTime();
+    const countdownLabel = document.getElementById("countdown-label");
+    const units = {
+      days: document.querySelector('[data-unit="days"]'),
+      hours: document.querySelector('[data-unit="hours"]'),
+      minutes: document.querySelector('[data-unit="minutes"]'),
+      seconds: document.querySelector('[data-unit="seconds"]')
+    };
+
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function renderCountdown() {
+      const now = Date.now();
+      const diff = targetTime - now;
+      const safeDiff = Math.max(diff, 0);
+      const days = Math.floor(safeDiff / 86400000);
+      const hours = Math.floor((safeDiff % 86400000) / 3600000);
+      const minutes = Math.floor((safeDiff % 3600000) / 60000);
+      const seconds = Math.floor((safeDiff % 60000) / 1000);
+
+      units.days.textContent = String(days).padStart(2, "0");
+      units.hours.textContent = pad(hours);
+      units.minutes.textContent = pad(minutes);
+      units.seconds.textContent = pad(seconds);
+
+      if (diff <= 0) {
+        countdownLabel.textContent = "Showtime.";
+      }
+    }
+
+    renderCountdown();
+    window.setInterval(renderCountdown, 1000);
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const revealItems = document.querySelectorAll("[data-reveal]");
+
+    if (reduceMotion || !("IntersectionObserver" in window)) {
+      revealItems.forEach((item) => item.classList.add("is-visible"));
+    } else {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+
+      revealItems.forEach((item) => observer.observe(item));
+    }
+
+    const stops = [
+      {
+        name: "African Burial Ground National Monument",
+        address: "290 Broadway, New York, NY 10007",
+        metric: "0 ft",
+        lat: 40.714526,
+        lng: -74.005987
+      },
+      {
+        name: "Jackie Robinson Museum",
+        address: "75 Varick St, New York, NY 10013",
+        metric: "2F",
+        lat: 40.7234621,
+        lng: -74.0068304
+      },
+      {
+        name: "Webster Hall",
+        address: "125 E 11th St, New York, NY 10003",
+        metric: "Main floor",
+        lat: 40.731769,
+        lng: -73.989114
+      },
+      {
+        name: "Nubeluz by José Andrés",
+        address: "25 W 28th St, New York, NY 10001",
+        metric: "500 ft",
+        lat: 40.7457630644,
+        lng: -73.9888768892
+      },
+      {
+        name: "City Climb at Edge",
+        address: "30 Hudson Yards, Level 4, New York, NY 10001",
+        metric: "1,271 ft",
+        lat: 40.754009,
+        lng: -74.000767
+      }
+    ];
+
+    const map = L.map("map", {
+      scrollWheelZoom: false,
+      zoomControl: true
+    });
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      maxZoom: 20,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map);
+
+    const bounds = [];
+
+    stops.forEach((stop, index) => {
+      const marker = L.marker([stop.lat, stop.lng], {
+        icon: L.divIcon({
+          className: "",
+          html: `<div class="route-pin" aria-hidden="true"><span>${index + 1}</span></div>`,
+          iconSize: [34, 34],
+          iconAnchor: [17, 34],
+          popupAnchor: [0, -30]
+        }),
+        title: `${index + 1}. ${stop.name}`
+      }).addTo(map);
+
+      marker.bindPopup(`
+        <p class="popup-name">${stop.name}</p>
+        <p class="popup-meta">${stop.address}</p>
+        <span class="popup-metric">${stop.metric}</span>
+      `, { className: "glass-popup" });
+
+      bounds.push([stop.lat, stop.lng]);
+    });
+
+    L.polyline(bounds, {
+      color: "#f5b945",
+      weight: 2,
+      opacity: 0.64,
+      dashArray: "4 8"
+    }).addTo(map);
+
+    map.fitBounds(bounds, { padding: [44, 44] });
+  </script>
+</body>
+</html>
